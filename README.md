@@ -44,4 +44,27 @@ Options:
 
 If you want to use it for a long time, it is more convenient to add the exe to the environment path. 
 
-It don't have a shorter name like rg(ripgrep) currently.
+## Create an alias
+
+ouou-dictation don't have a shorter name like rg(ripgrep) currently, but you can create an alias yourself:
+
+* In Windows Powershell:
+ Unlike some Unix shells, you cannot assign an alias to a command with parameters in Powershell. Instead, you must create a function to propagate arguments and stdin input. To keep the function alive permanently, declare it in `$profile`(if not exists, run `New-Item -Type file -Force $profile` to create it):
+ ```powershell
+ function ood {
+    $count = @($input).Count
+    $input.Reset()
+
+    if ($count) {
+        $input | ouou_dictation.exe $args
+    }
+    else {
+        ouou_dictation.exe $args
+    }
+ }
+ ```
+ 
+ * In Linux Shell:
+  ```shell
+  alias ood='ouou_dictation'
+  ```
