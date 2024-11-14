@@ -1,6 +1,6 @@
 [package]
 name = "ouou_dictation"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["OuOu2021 <1113117424@qq.com>"]
 edition = "2021"
 description = "A command-line app for self-guided dictation practice in Chinese, Japanese, or English."
