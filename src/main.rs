@@ -80,6 +80,6 @@ fn main() -> Result<()> {
         }
     }
     println!("About to quit.");
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    std::thread::sleep(std::time::Duration::from_secs_f32(1.3));
     Ok(())
 }
