@@ -4,7 +4,7 @@ use anyhow::{Ok, Result};
 use console::style;
 use console::Term;
 use indicatif::{ProgressBar, ProgressStyle};
-use language_tags::{LanguageTag, ParseError};
+use language_tags::LanguageTag;
 use lingua::{
     Language,
     Language::{Chinese, English, Japanese},
@@ -60,7 +60,7 @@ pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts
     Ok(speaker)
 }
 
-pub fn read(speaker: &mut Tts, word_list: &Vec<String>) -> Result<()> {
+pub fn read(speaker: &mut Tts, word_list: &[String]) -> Result<()> {
     println!("Start Reading:");
 
     word_list.iter().enumerate().try_for_each(|(i, s)| {
@@ -80,13 +80,8 @@ pub fn read(speaker: &mut Tts, word_list: &Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn dictate(
-    term: &mut Term,
-    speaker: &mut Tts,
-    word_list: &Vec<String>,
-) -> Result<CorrectionList> {
+pub fn dictate(term: &mut Term, speaker: &mut Tts, word_list: &[String]) -> Result<CorrectionList> {
     // Initialize Term & Progress Bar & Inputs
-    let term = Term::stdout();
     let word_num = word_list.len();
     term.clear_screen()?;
 
@@ -143,7 +138,7 @@ pub fn dictate(
         match number {
             Result::Ok(number) if (1..=word_num).contains(&number) => {
                 let index = number - 1;
-                print!("change {} to: ", inputs[index as usize]);
+                print!("change {} to: ", inputs[index]);
                 stdout().flush()?;
                 let mut change = String::new();
                 std::io::stdin().read_line(&mut change)?;
@@ -183,7 +178,7 @@ pub fn dictate(
     })?;
 
     // Result
-    println!("");
+    println!();
     let right = (word_list.len() - cor_list.words_and_correction.len()) as u64;
     let accuracy = right as f64 / word_num as f64 * 100.0;
 
@@ -201,7 +196,7 @@ pub fn dictate(
     };
     pb.set_style(style);
     pb.abandon_with_message("Done. Accuracy: ");
-    println!("");
+    println!();
     Ok(cor_list)
 }
 
