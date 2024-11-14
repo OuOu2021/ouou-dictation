@@ -11,6 +11,7 @@ use crate::LANGUAGES;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WordList {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<Language>,
     pub words: Vec<String>,
 }
@@ -39,15 +40,22 @@ pub fn build_word_list(term: &mut Term) -> anyhow::Result<WordList> {
         }
         stdout().flush()?;
         stdin().read_line(&mut buf)?;
-        let lang = Language::from_str(buf.trim());
-        if lang.is_err() {
-            invalid_flag = true;
-            term.move_cursor_up(1)?;
-            term.clear_line()?;
-            continue;
-        } else {
-            language = Some(lang.unwrap());
+        let tmp = buf.trim();
+        if tmp == "" {
             break;
+        }
+        let lang = Language::from_str(tmp);
+        match lang {
+            Ok(l) => {
+                language = Some(l);
+                break;
+            }
+            Err(_) => {
+                invalid_flag = true;
+                term.move_cursor_up(1)?;
+                term.clear_line()?;
+                continue;
+            }
         }
     }
 
