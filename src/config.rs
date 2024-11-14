@@ -10,9 +10,8 @@ pub struct Config {
     #[arg(value_enum, default_value_t = Mode::Dictate)]
     pub mode: Mode,
 
-    #[arg(value_enum, default_value_t = Gender::Female)]
-    pub gender: Gender,
-
+    // #[arg(value_enum, default_value_t = Gender::Female)]
+    // pub gender: Gender,
     #[arg(long, short, default_value_t = 0.9, help = "Use like 0.5 or 1.2")]
     pub speed: f32,
 

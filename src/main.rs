@@ -45,7 +45,7 @@ fn main() -> Result<()> {
     let mut speaker = init_speaker(
         &mut term,
         input.language.unwrap(),
-        config.gender,
+        // config.gender,
         config.speed,
     )?;
 
