@@ -1,6 +1,10 @@
-use std::io::Write;
+use std::io::{stdout, Write};
 
 use anyhow::Result;
+use console::style;
+use console::Term;
+use crossterm::{cursor, terminal, ExecutableCommand};
+use indicatif::{ProgressBar, ProgressFinish, ProgressStyle};
 use language_tags::{LanguageTag, ParseError};
 use lingua::{
     Language,
@@ -80,10 +84,23 @@ pub fn read(mut speaker: Tts, word_list: &Vec<String>) -> Result<()> {
 }
 
 pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<Vec<String>> {
-    println!("Start Dictating:");
+    let mut stdout = stdout();
+    stdout
+        .execute(terminal::Clear(terminal::ClearType::All))
+        .unwrap();
+    let pb = ProgressBar::new(word_list.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{msg} [{wide_bar}] {pos}/{len}")?
+            .progress_chars("=> "),
+    );
     let mut wrong_list = Vec::new();
 
     word_list.iter().enumerate().try_for_each(|(i, s)| {
+        stdout.execute(cursor::MoveTo(0, 0)).unwrap();
+        pb.set_position(i as u64);
+        pb.set_message(format!("Dictating {}th word", i + 1));
+        stdout.execute(cursor::MoveTo(0, i as u16 + 1)).unwrap();
         let s = s.trim();
         print!("{}. ", i + 1);
         std::io::stdout().flush().unwrap();
@@ -93,19 +110,37 @@ pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<Vec<String>>
 
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
+        // stdout.execute(cursor::MoveTo(0, 0)).unwrap();
+        // stdout
+        //     .execute(terminal::Clear(terminal::ClearType::CurrentLine))
+        //     .unwrap();
         let input = input.trim();
         if input != s {
-            println!("wrong!");
+            // println!("wrong!");
             wrong_list.push(format!("{input} -> {s}"));
         }
         speaker.stop()?;
         Ok::<(), tts::Error>(())
     })?;
 
-    let cnt_words = word_list.len();
-    let cnt_correct = cnt_words - wrong_list.len();
+    let len = word_list.len() as u64;
+    let right = (word_list.len() - wrong_list.len()) as u64;
+    let accuracy = right as f64 / len as f64 * 100.0;
 
-    println!("\nDictation Over.\n Accuracy:{cnt_correct}/{cnt_words}");
+    pb.set_length(100);
+    pb.set_position(accuracy as u64);
+
+    let style = if accuracy > 80.0 {
+        ProgressStyle::default_bar().template("{msg} [{wide_bar:.green}] {pos}%")?
+        // .progress_chars("=> ")
+        // .tick_chars("██")
+    } else {
+        ProgressStyle::default_bar().template("{msg} [{wide_bar:.red}] {pos}%")?
+        // .progress_chars("=> ")
+        // .tick_chars("██")
+    };
+    pb.set_style(style);
+    pb.abandon_with_message(format!("Done. Accuracy: {:.2}%", accuracy));
 
     Ok(wrong_list)
 }
