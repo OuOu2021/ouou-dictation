@@ -1,10 +1,10 @@
 use std::{
-    io::{stdin, stdout, Write},
+    io::{stdin, stdout, Read, Write},
     str::FromStr,
 };
 
 use console::Term;
-use lingua::Language;
+use lingua::{Language, LanguageDetectorBuilder};
 use serde::{Deserialize, Serialize};
 
 use crate::LANGUAGES;
@@ -29,11 +29,32 @@ impl CorrectionList {
 }
 
 pub fn build_word_list(term: &mut Term) -> anyhow::Result<WordList> {
+    let mut words = Vec::new();
+    for i in 1.. {
+        let mut buf = String::new();
+        print!("input word {i}, or q to quit: ");
+        stdout().flush()?;
+        stdin().read_line(&mut buf)?;
+        let tmp = buf.trim();
+        if tmp == "q" || tmp == "" {
+            break;
+        }
+        words.push(buf.trim().to_owned());
+    }
+
+    let detector = LanguageDetectorBuilder::from_languages(&LANGUAGES).build();
+    let detected = words.join(" ");
+    let mut language = detector.detect_language_of(detected);
+
     let mut invalid_flag = false;
-    let mut language = None;
     loop {
         let mut buf = String::new();
-        if invalid_flag {
+        if !invalid_flag && language.is_some() {
+            print!(
+                "language detected: {}, enter to use it, or change to: ",
+                language.unwrap().to_string()
+            );
+        } else if invalid_flag {
             print!("invalid language! input one among {LANGUAGES:?}: ");
         } else {
             print!("input to select a language: ");
@@ -57,19 +78,6 @@ pub fn build_word_list(term: &mut Term) -> anyhow::Result<WordList> {
                 continue;
             }
         }
-    }
-
-    let mut words = Vec::new();
-    for i in 1.. {
-        let mut buf = String::new();
-        print!("input word {i}, or q to quit: ");
-        stdout().flush()?;
-        stdin().read_line(&mut buf)?;
-        let tmp = buf.trim();
-        if tmp == "q" || tmp == "" {
-            break;
-        }
-        words.push(buf.trim().to_owned());
     }
 
     Ok(WordList { language, words })
