@@ -1,10 +1,9 @@
 use std::io::{stdout, Write};
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use console::style;
 use console::Term;
-use crossterm::{cursor, terminal, ExecutableCommand};
-use indicatif::{ProgressBar, ProgressFinish, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
 use language_tags::{LanguageTag, ParseError};
 use lingua::{
     Language,
@@ -61,7 +60,7 @@ pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts
     Ok(speaker)
 }
 
-pub fn read(mut speaker: Tts, word_list: &Vec<String>) -> Result<()> {
+pub fn read(speaker: &mut Tts, word_list: &Vec<String>) -> Result<()> {
     println!("Start Reading:");
 
     word_list.iter().enumerate().try_for_each(|(i, s)| {
@@ -72,7 +71,7 @@ pub fn read(mut speaker: Tts, word_list: &Vec<String>) -> Result<()> {
         while speaker.is_speaking()? {
             std::thread::sleep(std::time::Duration::from_millis(500));
         }
-        Ok::<(), tts::Error>(())
+        Ok(())
     })?;
 
     println!("\n Read Over, about to quit");
@@ -81,60 +80,111 @@ pub fn read(mut speaker: Tts, word_list: &Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<CorrectionList> {
-    let len = word_list.len() as u64;
-    let mut stdout = stdout();
-    stdout
-        .execute(terminal::Clear(terminal::ClearType::All))
-        .unwrap();
-    let pb = ProgressBar::new(len);
+pub fn dictate(
+    term: &mut Term,
+    speaker: &mut Tts,
+    word_list: &Vec<String>,
+) -> Result<CorrectionList> {
+    // Initialize Term & Progress Bar & Inputs
+    let term = Term::stdout();
+    let word_num = word_list.len();
+    term.clear_screen()?;
+
+    let pb = ProgressBar::new(word_num as u64);
     pb.set_style(
         ProgressStyle::default_bar()
             .template("{msg} [{bar:60}] {pos}/{len} {elapsed}")?
             .progress_chars("=> "),
     );
-    let mut inputs = Vec::new();
+    let mut inputs = vec!["".to_string(); word_num];
 
+    // Dictation
     word_list.iter().enumerate().try_for_each(|(i, s)| {
-        stdout.execute(cursor::MoveTo(0, 0)).unwrap();
+        term.move_cursor_to(0, 0)?;
         pb.set_position(i as u64);
         pb.set_message(format!("Dictating {}th word", i + 1));
-        stdout.execute(cursor::MoveTo(0, i as u16 + 1)).unwrap();
+        term.move_cursor_to(0, i + 1)?;
         let s = s.trim();
         print!("{}. ", i + 1);
-        std::io::stdout().flush().unwrap();
+        std::io::stdout().flush()?;
 
         speaker.speak(s, false)?;
         speaker.speak(s, false)?;
 
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
-        // stdout.execute(cursor::MoveTo(0, 0)).unwrap();
-        // stdout
-        //     .execute(terminal::Clear(terminal::ClearType::CurrentLine))
-        //     .unwrap();
         let input = input.trim();
-        inputs.push(input.to_owned());
+        inputs[i] = input.to_owned();
         speaker.stop()?;
-        Ok::<(), tts::Error>(())
+        Ok(())
     })?;
-    stdout.execute(cursor::MoveTo(0, 0)).unwrap();
+    term.move_cursor_to(0, 0)?;
     pb.finish();
-    stdout.execute(cursor::MoveTo(0, (len + 2) as u16)).unwrap();
+
+    // Make changes
+    let mut invalid_flag = false;
+    loop {
+        term.move_cursor_to(0, word_num + 3)?;
+        term.clear_line()?;
+        term.move_cursor_to(0, word_num + 2)?;
+        term.clear_line()?;
+        if !invalid_flag {
+            print!("Any changes? input a number for the position to change, or q to quit: ");
+        } else {
+            print!("Invalid input, please enter a number, or q to quit: ");
+        }
+        stdout().flush()?;
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        if input.trim() == "" || input.trim() == "q" {
+            break;
+        }
+        let number = input.trim().parse::<usize>();
+        match number {
+            Result::Ok(number) if (1..=word_num).contains(&number) => {
+                let index = number - 1;
+                print!("change {} to: ", inputs[index as usize]);
+                stdout().flush()?;
+                let mut change = String::new();
+                std::io::stdin().read_line(&mut change)?;
+                let change = change.trim();
+                term.move_cursor_to(0, number)?;
+                term.clear_line()?;
+                print!("{}. {}", number, style(change).yellow());
+                stdout().flush()?;
+                inputs[index] = change.to_owned();
+            }
+            _ => {
+                invalid_flag = true;
+                continue;
+            }
+        }
+        invalid_flag = false;
+    }
+
+    term.move_cursor_to(0, word_num + 2)?;
     let mut cor_list = CorrectionList {
         words_and_correction: Vec::new(),
     };
-    word_list.iter().enumerate().for_each(|(i, w)| {
+    word_list.iter().enumerate().try_for_each(|(i, w)| {
+        term.move_cursor_to(0, i + 1)?;
+        term.clear_line()?;
         if inputs[i] != *w {
             // println!("wrong!");
             cor_list
                 .words_and_correction
-                .push((word_list[i].to_owned(), w.to_owned()));
+                .push((inputs[i].to_owned(), w.to_owned()));
+            println!("{}. {} -> {}", i + 1, style(&inputs[i]).red(), w);
+        } else {
+            println!("{}. {}", i + 1, style(w).green());
         }
-    });
+        Ok(())
+    })?;
 
+    // Result
+    println!("");
     let right = (word_list.len() - cor_list.words_and_correction.len()) as u64;
-    let accuracy = right as f64 / len as f64 * 100.0;
+    let accuracy = right as f64 / word_num as f64 * 100.0;
 
     pb.set_length(100);
     pb.set_position(accuracy as u64);
@@ -150,7 +200,7 @@ pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<CorrectionLi
     };
     pb.set_style(style);
     pb.abandon_with_message("Done. Accuracy: ");
-
+    println!("");
     Ok(cor_list)
 }
 
