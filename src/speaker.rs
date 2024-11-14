@@ -62,7 +62,7 @@ pub fn init_speaker(
             stdout().flush()?;
             let mut input = String::new();
             stdin().read_line(&mut input)?;
-            let number: Result<usize, ParseIntError> = if input.trim() == "" {
+            let number: Result<usize, ParseIntError> = if input.trim().is_empty() {
                 Result::Ok(1)
             } else {
                 input.trim().parse::<usize>()

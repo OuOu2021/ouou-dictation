@@ -103,7 +103,7 @@ pub fn dictate(term: &mut Term, speaker: &mut Tts, word_list: &[String]) -> Resu
         stdout().flush()?;
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
-        if input.trim() == "" || input.trim() == "q" {
+        if input.trim().is_empty() || input.trim() == "q" {
             break;
         }
         let number = input.trim().parse::<usize>();

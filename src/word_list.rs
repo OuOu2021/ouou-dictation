@@ -1,5 +1,5 @@
 use std::{
-    io::{stdin, stdout, Read, Write},
+    io::{stdin, stdout, Write},
     str::FromStr,
 };
 
@@ -36,7 +36,7 @@ pub fn build_word_list(term: &mut Term) -> anyhow::Result<WordList> {
         stdout().flush()?;
         stdin().read_line(&mut buf)?;
         let tmp = buf.trim();
-        if tmp == "q" || tmp == "" {
+        if tmp == "q" || tmp.is_empty() {
             break;
         }
         words.push(buf.trim().to_owned());
@@ -52,7 +52,7 @@ pub fn build_word_list(term: &mut Term) -> anyhow::Result<WordList> {
         if !invalid_flag && language.is_some() {
             print!(
                 "language detected: {}, enter to use it, or change to: ",
-                language.unwrap().to_string()
+                language.unwrap()
             );
         } else if invalid_flag {
             print!("invalid language! input one among {LANGUAGES:?}: ");
@@ -62,7 +62,7 @@ pub fn build_word_list(term: &mut Term) -> anyhow::Result<WordList> {
         stdout().flush()?;
         stdin().read_line(&mut buf)?;
         let tmp = buf.trim();
-        if tmp == "" {
+        if tmp.is_empty() {
             break;
         }
         let lang = Language::from_str(tmp);
