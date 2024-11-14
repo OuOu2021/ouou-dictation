@@ -2,6 +2,7 @@ mod config;
 mod dictation;
 mod word_list;
 use config::*;
+use console::Term;
 use dictation::*;
 
 use anyhow::{Context, Result};
@@ -9,12 +10,10 @@ use clap::Parser;
 use lingua::LanguageDetectorBuilder;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
-use std::process::exit;
 use word_list::WordList;
 
-use std::io;
-
 fn main() -> Result<()> {
+    let mut term = Term::stdout();
     let config = Config::parse();
     let input = std::fs::read_to_string(&config.path).context(format!(
         "failed to get input from {:?}",
@@ -37,24 +36,24 @@ fn main() -> Result<()> {
         words.shuffle(&mut rng);
     }
 
-    let speaker = init_speaker(input.language.unwrap(), config.gender, config.speed)?;
+    let mut speaker = init_speaker(input.language.unwrap(), config.gender, config.speed)?;
 
     match config.mode {
         Mode::Dictate => {
-            let cor_list = dictate(speaker, &words)?;
+            let cor_list = dictate(&mut term, &mut speaker, &words)?;
             let output = "./wrong_list.txt";
 
             if !cor_list.is_empty() {
+                term.clear_line()?;
                 generate_wrong_list(cor_list, output).context("failed to generate wrong list")?;
-
                 println!("Please check {output} for wrong words");
             }
-
+            term.clear_line()?;
             println!("About to quit.");
 
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
-        Mode::Read => read(speaker, &words)?,
+        Mode::Read => read(&mut speaker, &words)?,
     };
     Ok(())
 }
