@@ -1,59 +1,51 @@
-#![feature(try_find)]
-mod cli;
-mod gen;
-use cli::*;
-use gen::*;
+mod config;
+mod dictation;
+mod word_list;
+use config::*;
+use dictation::*;
 
+use anyhow::{Context, Result};
 use clap::Parser;
 use lingua::LanguageDetectorBuilder;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use std::process::exit;
+use word_list::WordList;
 
-fn main() {
-    let cli = Cli::parse();
-    let input = std::fs::read_to_string(&cli.path).unwrap_or_else(|e| {
-        panic!(
-            "failed to get input from {}: {e}",
-            cli.path.to_str().unwrap_or_else(|| {
-                eprintln!("illegal unicode file name");
-                exit(1);
-            })
-        );
-    });
-    let detector = LanguageDetectorBuilder::from_languages(&LANGUAGES).build();
-    let lang = detector.detect_language_of(&input).unwrap_or_else(|| {
-        eprintln!("Can't determine the language of text");
-        exit(1);
-    });
+use std::io;
 
-    let mut input = input.lines().collect::<Vec<_>>();
-    if !cli.dont_shuffle && cli.mode == Mode::Dictate {
-        let d = std::time::SystemTime::now()
-            .duration_since(std::time::SystemTime::UNIX_EPOCH)
-            .unwrap_or_else(|e| {
-                eprintln!("Duration since UNIX_EPOCH failed: {e}");
-                exit(1);
-            });
-        let mut rng = rand::rngs::StdRng::seed_from_u64(d.as_secs());
-        input.shuffle(&mut rng);
+fn main() -> Result<()> {
+    let config = Config::parse();
+    let input = std::fs::read_to_string(&config.path).context(format!(
+        "failed to get input from {:?}",
+        config.path.to_str().context("illegal unicode file name"),
+    ))?;
+    let mut input: WordList = serde_json::from_str(&input)?;
+
+    let mut words = input.words;
+    if input.language.is_none() {
+        let detector = LanguageDetectorBuilder::from_languages(&LANGUAGES).build();
+        let detected = words.join(" ");
+        input.language = detector.detect_language_of(detected);
     }
 
-    let speaker = init_speaker(lang, cli.gender, cli.rate).unwrap_or_else(|e| {
-        eprintln!("{e}");
-        exit(1);
-    });
+    if !config.dont_shuffle && config.mode == Mode::Dictate {
+        let d = std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .context("Duration since UNIX_EPOCH failed")?;
+        let mut rng = rand::rngs::StdRng::seed_from_u64(d.as_secs());
+        words.shuffle(&mut rng);
+    }
 
-    match cli.mode {
+    let speaker = init_speaker(input.language.unwrap(), config.gender, config.speed)?;
+
+    match config.mode {
         Mode::Dictate => {
-            let wrong_list = dictate(speaker, &input).unwrap_or_else(|e| panic!("{e}"));
+            let wrong_list = dictate(speaker, &words)?;
             let output = "./wrong_list.txt";
 
             if !wrong_list.is_empty() {
-                generate_wrong_list(wrong_list, output).unwrap_or_else(|e| {
-                    eprintln!("failed to generate wrong list: {e}");
-                    exit(1);
-                });
+                generate_wrong_list(wrong_list, output).context("failed to generate wrong list")?;
 
                 println!("Please check {output} for wrong words");
             }
@@ -62,9 +54,7 @@ fn main() {
 
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
-        Mode::Read => read(speaker, &input).unwrap_or_else(|e| {
-            eprintln!("{e}");
-            exit(1);
-        }),
+        Mode::Read => read(speaker, &words)?,
     };
+    Ok(())
 }

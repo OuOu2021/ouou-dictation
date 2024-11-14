@@ -38,14 +38,15 @@ pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts
     if let Err(e) = speaker.set_voice(
         &voices
             .into_iter()
-            .try_find(|x| {
-                Ok::<bool, ParseError>(
-                    x.gender().unwrap() == gender.into()
-                        && LanguageTag::parse(&x.language())?.primary_language()
-                            == LanguageTag::parse(&language.iso_code_639_1().to_string())?
-                                .primary_language(),
-                )
-            })?
+            .find(|x| {
+                x.gender().unwrap() == gender.into()
+                    && LanguageTag::parse(&x.language())
+                        .expect("Parse Error")
+                        .primary_language()
+                        == LanguageTag::parse(&language.iso_code_639_1().to_string())
+                            .expect("Parse Error")
+                            .primary_language()
+            })
             .expect("No proper voice"),
     ) {
         panic!("Issue occurred when setting voice. {e:?}");
@@ -58,7 +59,7 @@ pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts
     Ok(speaker)
 }
 
-pub fn read(mut speaker: Tts, word_list: &[&str]) -> Result<()> {
+pub fn read(mut speaker: Tts, word_list: &Vec<String>) -> Result<()> {
     println!("Start Reading:");
 
     word_list.iter().enumerate().try_for_each(|(i, s)| {
@@ -78,7 +79,7 @@ pub fn read(mut speaker: Tts, word_list: &[&str]) -> Result<()> {
     Ok(())
 }
 
-pub fn dictate(mut speaker: Tts, word_list: &Vec<&str>) -> Result<Vec<String>> {
+pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<Vec<String>> {
     println!("Start Dictating:");
     let mut wrong_list = Vec::new();
 
