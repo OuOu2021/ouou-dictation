@@ -166,17 +166,18 @@ pub fn dictate(
     let mut cor_list = CorrectionList {
         words_and_correction: Vec::new(),
     };
-    word_list.iter().enumerate().try_for_each(|(i, w)| {
-        term.move_cursor_to(0, i + 1)?;
+    word_list.iter().enumerate().try_for_each(|(index, w)| {
+        let number = index + 1;
+        term.move_cursor_to(0, index + 1)?;
         term.clear_line()?;
-        if inputs[i] != *w {
+        if inputs[index] != *w {
             // println!("wrong!");
             cor_list
                 .words_and_correction
-                .push((inputs[i].to_owned(), w.to_owned()));
-            println!("{}. {} -> {}", i + 1, style(&inputs[i]).red(), w);
+                .push((number, inputs[index].to_owned(), w.to_owned()));
+            println!("{}. {} -> {}", number, style(&inputs[index]).red(), w);
         } else {
-            println!("{}. {}", i + 1, style(w).green());
+            println!("{}. {}", number, style(w).green());
         }
         Ok(())
     })?;

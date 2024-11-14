@@ -10,7 +10,7 @@ pub struct WordList {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CorrectionList {
     // pub language: Option<Language>,
-    pub words_and_correction: Vec<(String, String)>,
+    pub words_and_correction: Vec<(usize, String, String)>,
 }
 
 impl CorrectionList {
