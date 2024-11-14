@@ -28,7 +28,6 @@ lingua = { version = "1.6", default-features = false, features = [
     "english",
     "chinese",
 ] }
-language-tags = "0.3.2"
 rand = "0.8.5"
 indicatif = "0.17.9"
 crossterm = "0.28"

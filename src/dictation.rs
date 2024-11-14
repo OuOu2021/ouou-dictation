@@ -4,11 +4,11 @@ use anyhow::{Ok, Result};
 use console::style;
 use console::Term;
 use indicatif::{ProgressBar, ProgressStyle};
-use language_tags::LanguageTag;
 use lingua::{
     Language,
     Language::{Chinese, English, Japanese},
 };
+use tts::LanguageTag;
 use tts::Tts;
 
 use crate::word_list::CorrectionList;
@@ -45,10 +45,10 @@ pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts
             .into_iter()
             .find(|x| {
                 x.gender().unwrap() == gender.into()
-                    && LanguageTag::parse(&x.language())
+                    && LanguageTag::parse(x.language())
                         .expect("Parse Error")
                         .primary_language()
-                        == LanguageTag::parse(&language.iso_code_639_1().to_string())
+                        == LanguageTag::parse(language.iso_code_639_1().to_string())
                             .expect("Parse Error")
                             .primary_language()
             })
