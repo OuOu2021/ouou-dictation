@@ -1,24 +1,31 @@
 # ouou-dictation
-A command-line program for **self-help dictation** supporting Chinese, Japanese and English.
+A command-line app for **self-guided dictation** practice in Chinese, Japanese, or English.
 
 It's the first product of my Rust learning. Mostly for my own use, but if you find any issues or have good ideas, just let me know.
 
 ## Features
-* Use [clap](https://crates.io/crates/clap) to parse arguments
-
-* Use [Lingua](https://crates.io/crates/lingua) to detect languages automatically.
-
-* Use [TTS-RS](https://crates.io/crates/tts) to speak out the words in various backends.
-
 * Two Modes:
   * Dictate Mode for Self-dictation. Check the answer in real time
   * Read Mode just read over the word list
+  * plus a mode for building word list 
 
-* Switch Male/Female
+* Select voices
 
 * Switch whether to shuffle the word list
 
 * Set speaking rate
+
+* [clap](https://crates.io/crates/clap) for parsing arguments
+
+* [Lingua](https://crates.io/crates/lingua) for automatical languages detection.
+
+* [TTS-RS](https://crates.io/crates/tts) for speaking out the words in various backends.
+
+* [indicatif](https://crates.io/crates/indicatif) & [console](https://crates.io/crates/console) for colorful information display in terminals.
+
+* [Anyhow](https://crates.io/crates/anyhow) for errors handling.
+
+* [Serde](https://crates.io/crates/serde) for json format word list serialization and deserialization.
 
 ## Usage
 Build it or download the release.
@@ -26,20 +33,19 @@ Build it or download the release.
 Run it in the console. take `--help` as argument for help, like:
 ```
 PS C:\Users\OuOu\Desktop> .\ouou_dictation.exe --help
-A command-line program for multi-language self-help dictation.
+A command-line app for self-guided dictation practice in Chinese, Japanese, or English.
 
-Usage: ouou_dictation.exe [OPTIONS] --path <PATH> [MODE] [GENDER]
+Usage: ouou_dictation.exe [OPTIONS] --path <PATH> [MODE]
 
 Arguments:
-  [MODE]    [default: dictate] [possible values: dictate, read]
-  [GENDER]  [default: female] [possible values: male, female]
+  [MODE]  [default: dictation] [possible values: dictation, speak, build-list]
 
 Options:
   -p, --path <PATH>
-  -r, --rate <RATE>   Use like 0.5/2.0 [default: 0.9]
-  -d, --dont-shuffle  Do not shuffle the word list
-  -h, --help          Print help
-  -V, --version       Print version
+  -s, --speed <SPEED>  Use like 0.5 or 1.2 [default: 0.9]
+  -d, --dont-shuffle   Do not shuffle the word list
+  -h, --help           Print help
+  -V, --version        Print version
 ```
 
 If you want to use it for a long time, it is more convenient to add the exe to the environment path. 
