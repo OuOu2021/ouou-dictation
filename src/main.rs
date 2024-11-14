@@ -30,13 +30,10 @@ fn main() -> Result<()> {
     let mut input: WordList = serde_json::from_str(&word_list)?;
 
     let mut words = input.words;
-    match input.language {
-        None => {
-            let detector = LanguageDetectorBuilder::from_languages(&LANGUAGES).build();
-            let detected = words.join(" ");
-            input.language = detector.detect_language_of(detected);
-        }
-        _ => {}
+    if input.language.is_none() {
+        let detector = LanguageDetectorBuilder::from_languages(&LANGUAGES).build();
+        let detected = words.join(" ");
+        input.language = detector.detect_language_of(detected);
     }
 
     if !config.dont_shuffle && config.mode == Mode::Dictate {
