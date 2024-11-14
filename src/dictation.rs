@@ -201,8 +201,7 @@ pub fn dictate(term: &mut Term, speaker: &mut Tts, word_list: &[String]) -> Resu
     Ok(cor_list)
 }
 
-pub fn generate_wrong_list(cor_list: CorrectionList, path: &str) -> anyhow::Result<()> {
-    std::fs::write(path, serde_json::to_string_pretty(&cor_list)?)?;
-
-    Ok(())
+pub fn generate_wrong_list(cor_list: CorrectionList, path: &str) -> Result<()> {
+    std::fs::write(path, serde_json::to_string_pretty(&cor_list)?)
+        .context(format!("fail to write correction list to {path}"))
 }
