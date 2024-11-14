@@ -25,8 +25,11 @@ impl From<Gender> for tts::Gender {
 
 #[derive(clap::ValueEnum, Debug, Clone, PartialEq)]
 pub enum Mode {
-    Dictate,
-    Read,
+    /// Self-guided dictation
+    Dictation,
+    Speak,
+    /// Build a word list
+    BuildList,
 }
 
 pub fn read(speaker: &mut Tts, word_list: &[String]) -> Result<()> {

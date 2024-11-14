@@ -7,7 +7,7 @@ pub struct Config {
     #[arg(long, short)]
     pub path: std::path::PathBuf,
 
-    #[arg(value_enum, default_value_t = Mode::Dictate)]
+    #[arg(value_enum, default_value_t = Mode::Dictation)]
     pub mode: Mode,
 
     // #[arg(value_enum, default_value_t = Gender::Female)]
