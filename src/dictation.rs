@@ -4,16 +4,9 @@ use anyhow::{Context, Ok, Result};
 use console::style;
 use console::Term;
 use indicatif::{ProgressBar, ProgressStyle};
-use lingua::{
-    Language,
-    Language::{Chinese, English, Japanese},
-};
-use tts::LanguageTag;
 use tts::Tts;
 
 use crate::word_list::CorrectionList;
-
-pub const LANGUAGES: [Language; 3] = [English, Japanese, Chinese];
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy)]
 pub enum Gender {
@@ -34,31 +27,6 @@ impl From<Gender> for tts::Gender {
 pub enum Mode {
     Dictate,
     Read,
-}
-
-pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts::Tts> {
-    let mut speaker = Tts::default()?;
-    let voices = speaker.voices()?;
-    let mut proper_voice = None;
-    for x in voices {
-        if x.gender().unwrap() == gender.into()
-            && LanguageTag::parse(x.language())
-                .context("Parse Error")?
-                .primary_language()
-                == LanguageTag::parse(language.iso_code_639_1().to_string())
-                    .context("Parse Error")?
-                    .primary_language()
-        {
-            proper_voice = Some(x);
-            break;
-        }
-    }
-    match proper_voice {
-        Some(pv) => speaker.set_voice(&pv).context("fail to set voice"),
-        None => Err(anyhow::anyhow!("No proper voice")),
-    }?;
-    speaker.set_rate(rate)?;
-    Ok(speaker)
 }
 
 pub fn read(speaker: &mut Tts, word_list: &[String]) -> Result<()> {

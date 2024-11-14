@@ -1,6 +1,8 @@
 mod config;
 mod dictation;
+mod speaker;
 mod word_list;
+
 use config::*;
 use console::Term;
 use dictation::*;
@@ -8,9 +10,15 @@ use dictation::*;
 use anyhow::{Context, Result};
 use clap::Parser;
 use lingua::LanguageDetectorBuilder;
+use lingua::{
+    Language,
+    Language::{Chinese, English, Japanese},
+};
 use rand::seq::SliceRandom;
 use rand::{random, SeedableRng};
+use speaker::init_speaker;
 use word_list::WordList;
+pub const LANGUAGES: [Language; 3] = [English, Japanese, Chinese];
 
 fn main() -> Result<()> {
     let mut term = Term::stdout();
@@ -37,7 +45,12 @@ fn main() -> Result<()> {
         words.shuffle(&mut rng);
     }
 
-    let mut speaker = init_speaker(input.language.unwrap(), config.gender, config.speed)?;
+    let mut speaker = init_speaker(
+        &mut term,
+        input.language.unwrap(),
+        config.gender,
+        config.speed,
+    )?;
 
     match config.mode {
         Mode::Dictate => {
