@@ -1,6 +1,6 @@
 use std::io::{stdout, Write};
 
-use anyhow::{Ok, Result};
+use anyhow::{Context, Ok, Result};
 use console::style;
 use console::Term;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -39,24 +39,25 @@ pub enum Mode {
 pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts::Tts> {
     let mut speaker = Tts::default()?;
     let voices = speaker.voices()?;
-
-    speaker.set_voice(
-        &voices
-            .into_iter()
-            .find(|x| {
-                x.gender().unwrap() == gender.into()
-                    && LanguageTag::parse(x.language())
-                        .expect("Parse Error")
-                        .primary_language()
-                        == LanguageTag::parse(language.iso_code_639_1().to_string())
-                            .expect("Parse Error")
-                            .primary_language()
-            })
-            .expect("No proper voice"),
-    )?;
-
+    let mut proper_voice = None;
+    for x in voices {
+        if x.gender().unwrap() == gender.into()
+            && LanguageTag::parse(x.language())
+                .context("Parse Error")?
+                .primary_language()
+                == LanguageTag::parse(language.iso_code_639_1().to_string())
+                    .context("Parse Error")?
+                    .primary_language()
+        {
+            proper_voice = Some(x);
+            break;
+        }
+    }
+    match proper_voice {
+        Some(pv) => speaker.set_voice(&pv).context("fail to set voice"),
+        None => Err(anyhow::anyhow!("No proper voice")),
+    }?;
     speaker.set_rate(rate)?;
-
     Ok(speaker)
 }
 
