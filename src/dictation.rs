@@ -12,6 +12,8 @@ use lingua::{
 };
 use tts::Tts;
 
+use crate::word_list::CorrectionList;
+
 pub const LANGUAGES: [Language; 3] = [English, Japanese, Chinese];
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy)]
@@ -39,7 +41,7 @@ pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts
     let mut speaker = Tts::default()?;
     let voices = speaker.voices()?;
 
-    if let Err(e) = speaker.set_voice(
+    speaker.set_voice(
         &voices
             .into_iter()
             .find(|x| {
@@ -52,13 +54,9 @@ pub fn init_speaker(language: Language, gender: Gender, rate: f32) -> Result<tts
                             .primary_language()
             })
             .expect("No proper voice"),
-    ) {
-        panic!("Issue occurred when setting voice. {e:?}");
-    }
+    )?;
 
-    if let Err(e) = speaker.set_rate(rate) {
-        panic!("Issue occurred when setting rate {e:?}");
-    }
+    speaker.set_rate(rate)?;
 
     Ok(speaker)
 }
@@ -83,18 +81,19 @@ pub fn read(mut speaker: Tts, word_list: &Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<Vec<String>> {
+pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<CorrectionList> {
+    let len = word_list.len() as u64;
     let mut stdout = stdout();
     stdout
         .execute(terminal::Clear(terminal::ClearType::All))
         .unwrap();
-    let pb = ProgressBar::new(word_list.len() as u64);
+    let pb = ProgressBar::new(len);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{msg} [{wide_bar}] {pos}/{len}")?
+            .template("{msg} [{bar:60}] {pos}/{len} {elapsed}")?
             .progress_chars("=> "),
     );
-    let mut wrong_list = Vec::new();
+    let mut inputs = Vec::new();
 
     word_list.iter().enumerate().try_for_each(|(i, s)| {
         stdout.execute(cursor::MoveTo(0, 0)).unwrap();
@@ -115,43 +114,48 @@ pub fn dictate(mut speaker: Tts, word_list: &Vec<String>) -> Result<Vec<String>>
         //     .execute(terminal::Clear(terminal::ClearType::CurrentLine))
         //     .unwrap();
         let input = input.trim();
-        if input != s {
-            // println!("wrong!");
-            wrong_list.push(format!("{input} -> {s}"));
-        }
+        inputs.push(input.to_owned());
         speaker.stop()?;
         Ok::<(), tts::Error>(())
     })?;
+    stdout.execute(cursor::MoveTo(0, 0)).unwrap();
+    pb.finish();
+    stdout.execute(cursor::MoveTo(0, (len + 2) as u16)).unwrap();
+    let mut cor_list = CorrectionList {
+        words_and_correction: Vec::new(),
+    };
+    word_list.iter().enumerate().for_each(|(i, w)| {
+        if inputs[i] != *w {
+            // println!("wrong!");
+            cor_list
+                .words_and_correction
+                .push((word_list[i].to_owned(), w.to_owned()));
+        }
+    });
 
-    let len = word_list.len() as u64;
-    let right = (word_list.len() - wrong_list.len()) as u64;
+    let right = (word_list.len() - cor_list.words_and_correction.len()) as u64;
     let accuracy = right as f64 / len as f64 * 100.0;
 
     pb.set_length(100);
     pb.set_position(accuracy as u64);
 
     let style = if accuracy > 80.0 {
-        ProgressStyle::default_bar().template("{msg} [{wide_bar:.green}] {pos}%")?
+        ProgressStyle::default_bar().template("{msg} {bar:.green} {percent:.green}%")?
         // .progress_chars("=> ")
         // .tick_chars("██")
     } else {
-        ProgressStyle::default_bar().template("{msg} [{wide_bar:.red}] {pos}%")?
+        ProgressStyle::default_bar().template("{msg} {bar:.red} {percent:.red}%")?
         // .progress_chars("=> ")
         // .tick_chars("██")
     };
     pb.set_style(style);
-    pb.abandon_with_message(format!("Done. Accuracy: {:.2}%", accuracy));
+    pb.abandon_with_message("Done. Accuracy: ");
 
-    Ok(wrong_list)
+    Ok(cor_list)
 }
 
-pub fn generate_wrong_list(wrong_list: Vec<String>, path: &str) -> anyhow::Result<()> {
-    let mut output = Vec::new();
-
-    wrong_list
-        .into_iter()
-        .try_for_each(|s| writeln!(output, "{s}"))?;
-    std::fs::write(path, output)?;
+pub fn generate_wrong_list(cor_list: CorrectionList, path: &str) -> anyhow::Result<()> {
+    std::fs::write(path, serde_json::to_string_pretty(&cor_list)?)?;
 
     Ok(())
 }

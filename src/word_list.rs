@@ -9,6 +9,12 @@ pub struct WordList {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CorrectionList {
-    pub language: Option<Language>,
+    // pub language: Option<Language>,
     pub words_and_correction: Vec<(String, String)>,
+}
+
+impl CorrectionList {
+    pub fn is_empty(&self) -> bool {
+        self.words_and_correction.is_empty()
+    }
 }

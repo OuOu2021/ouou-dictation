@@ -41,11 +41,11 @@ fn main() -> Result<()> {
 
     match config.mode {
         Mode::Dictate => {
-            let wrong_list = dictate(speaker, &words)?;
+            let cor_list = dictate(speaker, &words)?;
             let output = "./wrong_list.txt";
 
-            if !wrong_list.is_empty() {
-                generate_wrong_list(wrong_list, output).context("failed to generate wrong list")?;
+            if !cor_list.is_empty() {
+                generate_wrong_list(cor_list, output).context("failed to generate wrong list")?;
 
                 println!("Please check {output} for wrong words");
             }
