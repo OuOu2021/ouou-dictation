@@ -27,8 +27,27 @@ It's the first product of my Rust learning. Mostly for my own use, but if you fi
 
 * [Serde](https://crates.io/crates/serde) for json format word list serialization and deserialization.
 
+## Install
+
+### Arch Linux
+
+#### Install from [AUR](https://aur.archlinux.org/packages/ouou-dictation)
+
+```shell
+[yay/paru] -S ouou-dictation
+```
+
+#### Install from [archlinuxcn](https://github.com/archlinuxcn/repo/tree/master/archlinuxcn/ouou-dictation)
+
+```shell
+sudo pacman -S ouou-dictation
+```
+
+### Windows
+
+Download from [GitHub Release](https://github.com/OuOu2021/ouou-dictation/releases/latest)
+
 ## Usage
-Build it or download the release.
 
 Run it in the console. take `--help` as argument for help, like:
 ```
